@@ -19,7 +19,6 @@ e.update = ->
     return
 
 e.version = ->
-    # npmとして分離した時に書き換え
     pkg = require "#{__dirname}/package.json"
     green   = '\u001b[32m'
     cyan    = '\u001b[36m'
