@@ -4,7 +4,7 @@ CONF_PATH = (process.env.HOME || process.env.USERPROFILE) + '/' + CONF_FILE_NAME
 
 # modules requirement
 fs = require 'fs'
-miopon = require '../index'
+miopon = require 'node-miopon'
 coupon = new miopon.Coupon()
 querify = miopon.utility.querify
 
@@ -20,8 +20,11 @@ e.update = ->
 
 e.version = ->
     # npmとして分離した時に書き換え
-    pkg = require '../package.json'
-    message = "depends on #{pkg.name}@#{pkg.version}"
+    pkg = require "#{__dirname}/package.json"
+    green   = '\u001b[32m'
+    cyan    = '\u001b[36m'
+    reset   = '\u001b[0m'
+    message = "#{green}#{pkg.name} #{reset}version #{cyan}#{pkg.version}#{reset}"
     console.log message
     return message
 
