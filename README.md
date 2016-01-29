@@ -12,3 +12,9 @@
 
 ## install
 `npm install -g node-miopon-cli`
+
+## TODOs
+- 各メソッド実装
+- preferGlobalにする
+- iconをなおす
+- publish
