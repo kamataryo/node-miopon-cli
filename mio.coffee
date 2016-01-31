@@ -4,8 +4,10 @@
 # parse arguments
 method = if process.argv[2] then method = process.argv[2].toString() else method = ''
 args = process.argv.slice 3
+lib = require __dirname + '/library'
 
-if typeof this[method] is 'function'
-    this[method].apply args
+if typeof lib[method] is 'function'
+    lib[method].apply args
+else
 
 return

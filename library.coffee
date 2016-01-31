@@ -8,12 +8,16 @@ _ = require 'underscore'
 miopon = require 'node-miopon'
 moment = require 'moment'
 
-readConfig = ({path, success}) ->
+readConfig = ({path, success, failure}) ->
     data = ''
     fs.createReadStream path
         .on 'error', (err) ->
             if err.code is 'ENOENT'
-                throw new Error 'no Config File Error'
+                if typeof failure is 'function'
+                    red     = '\u001b[31m'
+                    reset   = '\u001b[0m'
+                    console.log "[#{red}WARN#{reset}] no config file specified."
+                    failure()
         .on 'data', (chunk) ->
             data += chunk
         .on 'end', () ->
@@ -25,13 +29,15 @@ readConfig = ({path, success}) ->
 #exportsするもの
 e = {}
 
-e.init = ({path, mioID, mioPass, client_id, redirect_uri}) ->
+e.init = ({path, mioID, mioPass, client_id, redirect_uri, success}) ->
     path = if path then path else CONF_PATH
 
     if mioID && mioPass && client_id && redirect_uri
         ws = fs.createWriteStream path
         ws.write JSON.stringify {mioID, mioPass, client_id, redirect_uri}
         ws.end()
+        if typeof success is 'function'
+            success()
     else
         rl = require('readline').createInterface {
                 input: process.stdin,
@@ -46,32 +52,13 @@ e.init = ({path, mioID, mioPass, client_id, redirect_uri}) ->
                         ws.write JSON.stringify {mioID, mioPass, client_id, redirect_uri}
                         ws.end()
                         rl.close()
+                        if typeof success is 'function'
+                            success()
     return
 
-# oAuthする
-e.update = ({path}) ->
-    path = if path then path else CONF_PATH
-    data = ''
-    readConfig {
-        path
-        success: (config) ->
-            miopon.oAuth {
-                mioID: config.mioID
-                mioPass: config.mioPass
-                client_id: config.client_id
-                redirect_uri: config.redirect_uri
-
-                success: ({client_id, access_token, expires_in}) ->
-                    config.access_token = access_token
-                    config.expires_at = moment().add(expires_in, 'second')
-                    ws = fs.createWriteStream path
-                    ws.write JSON.stringify config
-                    ws.end()
-            }
-    }
 
 # access_tokenの情報を取得する
-e.token = ({path, success}) ->
+e.info = ({path, success, failure}) ->
     green   = '\u001b[32m'
     red     = '\u001b[31m'
     reset   = '\u001b[0m'
@@ -90,6 +77,39 @@ e.token = ({path, success}) ->
             console.log message
             if typeof success is 'function'
                 success expired
+        failure: ->
+            failure()
+    }
+
+
+# oAuthする
+e.update = ({path}) ->
+    path = if path then path else CONF_PATH
+    readConfig {
+        path
+        success: (config) ->
+            miopon.oAuth {
+                mioID: config.mioID
+                mioPass: config.mioPass
+                client_id: config.client_id
+                redirect_uri: config.redirect_uri
+
+                success: ({client_id, access_token, expires_in}) ->
+                    config.access_token = access_token
+                    config.expires_at = moment().add(expires_in, 'second')
+                    ws = fs.createWriteStream path
+                    ws.write JSON.stringify config
+                    ws.end()
+            }
+    }
+
+#認証情報を削除する
+e.delete = ({path}) ->
+    path = if path then path else CONF_PATH
+    readConfig {
+        path
+        success: ->
+            fs.unlink path
     }
 
 e.version = ->
@@ -109,8 +129,9 @@ e.off = ->
 
 
 synonyms =
-    init: ['i']
+    info: ['i']
     update: ['auth']
+    delete: ['d','del']
     version: ['v', 'ver']
 
 for method in Object.keys synonyms
