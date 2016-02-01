@@ -5,6 +5,7 @@
   "bin": {
     "mio": "mio.js"
   },
+  "preferGlobal": true,
   "scripts": {
     "test": "gulp test",
     "build": "gulp build",

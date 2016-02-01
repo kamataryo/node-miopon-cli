@@ -13,11 +13,8 @@
 ## install
 `npm install -g node-miopon-cli`
 
-## attention
+## 注意
 - ホームフォルダ下に、.node-mioponファイルを生成します。
 
 ## TODOs
-- 各メソッド実装
-- preferGlobalにする
 - iconをなおす
-- publish
