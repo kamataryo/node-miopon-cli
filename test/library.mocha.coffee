@@ -9,7 +9,7 @@ describeWebCases = if alsoTestWebCases then describe else describe.skip
 describe 'Interfaces: ', ->
     methods = [
         ['init']
-        ['info', 'i']
+        ['info', 'i', 'status']
         ['update','auth']
         ['delete', 'd', 'del']
         ['version','v', 'ver']

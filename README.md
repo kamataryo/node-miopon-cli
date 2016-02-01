@@ -14,7 +14,26 @@
 `npm install -g node-miopon-cli`
 
 ## 注意
-- ホームフォルダ下に、.node-mioponファイルを生成します。
+ホームフォルダ下に、設定ファイル.node-mioponファイルを生成します。
 
-## TODOs
-- iconをなおす
+## Interfaces
+
+### 設定ファイル作成
+`mio init`
+
+※ デベロッパーIDとリダイレクトURIは、公式サイトに従って登録してください。
+[IIJmioクーポンスイッチAPIのご利用に当たって(IIJmioのサイト)](https://www.iijmio.jp/hdd/coupon/mioponapi.jsp#goriyou)
+
+### アクセストークンと回線情報を取得
+`mio auth`
+
+### トークンの期限切れ確認
+`mio info` or `mio status`
+
+### トークンのon, off
+`mio on` and `min off`
+
+※現在のバージョンでは、すべての回線をon/offします
+
+### トークンを含む設定ファイルを削除
+`mio delete` or `mio del` or `mio d`

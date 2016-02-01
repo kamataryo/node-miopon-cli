@@ -195,7 +195,7 @@ e.off = ({path, quiet, couponUse} = {path: false, quiet: false, couponUse: false
 
 
 synonyms =
-    info: ['i']
+    info: ['i', 'status']
     update: ['auth']
     delete: ['d','del']
     version: ['v', 'ver']
