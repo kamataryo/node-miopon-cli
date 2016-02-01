@@ -77,7 +77,8 @@ describe 'Behaviors: ', ->
         it 'check token is out of date', (done) ->
             mio.info {
                 path: __dirname + '/.node-miopon-dummy-old'
-                success: (expired) ->
+                quiet: true
+                success: ({expired}) ->
                     expect(expired).to.be.true
                     done()
             }
@@ -85,7 +86,8 @@ describe 'Behaviors: ', ->
         it 'check token is out of date', (done) ->
             mio.info {
                 path: __dirname + '/.node-miopon-dummy-new'
-                success: (expired) ->
+                quiet: true
+                success: ({expired}) ->
                     expect(expired).to.be.false
                     done()
             }
@@ -93,6 +95,7 @@ describe 'Behaviors: ', ->
         it 'failes with unknown path', (done) ->
             mio.info {
                 path: 'this/is/a/nonsense/path'
+                quiet: true
                 success: ->
                     expect(false).to.be.true
                     done()

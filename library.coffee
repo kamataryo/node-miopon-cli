@@ -7,20 +7,21 @@ _ = require 'underscore'
 miopon = require 'node-miopon'
 moment = require 'moment'
 
-color =
+cColor =
     red   : '\u001b[31m'
     green : '\u001b[32m'
     cyan  : '\u001b[36m'
     reset : '\u001b[0m'
 
 # パスを指定してconfigファイルを読みます
-readConfig = ({path, success, failure}) ->
+readConfig = ({path, success, failure, quiet} = {path: '', quiet: false}) ->
     data = ''
     fs.createReadStream path
         .on 'error', (err) ->
             if err.code is 'ENOENT'
+                unless quiet
+                    console.log "[#{cColor.red}WARN#{cColor.reset}] no config file specified."
                 if typeof failure is 'function'
-                    console.log "[#{color.red}WARN#{color.reset}] no config file specified."
                     failure()
         .on 'data', (chunk) ->
             data += chunk
@@ -76,22 +77,39 @@ e.init = ({path, mioID, mioPass, client_id, redirect_uri, success} = {path: fals
 
 
 # access_tokenの情報を取得する
-e.info = ({path, success, failure} = {path: false}) ->
+e.info = ({path, success, failure, quiet} = {path: false, quiet: false}) ->
     path = if path then path else CONF_PATH
     readConfig {
         path
+        quiet
         success: (config) ->
             expired_in = moment config.expires_at
                 .diff moment(), 'second'
             expired = expired_in < 0
             remaining = calcRemaining expired_in
-            if expired
-                message = "[#{color.red}WARN#{color.reset}] token has been exipred #{color.red}#{remaining}#{color.reset} ago."
-            else
-                message = "[#{color.green}OK#{color.reset}] token is available and expiring in #{color.cyan}#{remaining}#{color.reset}."
-            console.log message
+            unless quiet
+                if expired
+                    message = "[#{cColor.red}WARN#{cColor.reset}] token has been exipred #{cColor.red}#{remaining}#{cColor.reset} ago."
+                else
+                    message = "[#{cColor.green}OK#{cColor.reset}] token is available and expiring in #{cColor.cyan}#{remaining}#{cColor.reset}."
+                console.log message
+
             if typeof success is 'function'
-                success expired
+                unless expired
+                    success {
+                        expired
+                        client_id: config.client_id
+                        access_token: config.access_token
+                        information: config.information
+                    }
+                else
+                    success {
+                        expired
+                        client_id: false
+                        access_token: false
+                        information: config.information
+                    }
+
         failure: ->
             failure()
     }
@@ -117,7 +135,7 @@ e.update = ({path} = {path: false}) ->
                     (new miopon.Coupon()).inform {
                         client_id
                         access_token
-                        success: (information) ->
+                        success: ({information}) ->
                             config.information = information
                             ws = fs.createWriteStream path
                             ws.write JSON.stringify config
@@ -130,7 +148,7 @@ e.update = ({path} = {path: false}) ->
 
 
 #認証情報を削除する
-e.delete = ({path}) ->
+e.delete = ({path} = {path: false}) ->
     path = if path then path else CONF_PATH
     readConfig {
         path
@@ -141,19 +159,39 @@ e.delete = ({path}) ->
 
 e.version = ->
     pkg = require "#{__dirname}/package.json"
-    message = "#{color.green}#{pkg.name} #{color.reset}version #{color.cyan}#{pkg.version}#{color.reset}"
+    message = "#{cColor.green}#{pkg.name} #{cColor.reset}version #{cColor.cyan}#{pkg.version}#{cColor.reset}"
     console.log message
     return message
 
-
-e.on = ({path}) ->
+# couponオンオフ
+e.on = ({path, quiet, couponUse} = {path: false, quiet: false, couponUse: true}) ->
+    path = if path then path else CONF_PATH
     e.info {
+        path
+        quiet: true
+        success: ({client_id, access_token, information}) ->
+            if client_id && access_token
 
+                query = miopon.utility.querify {
+                    information
+                    couponUse
+                }
+
+                (new miopon.Coupon()).turn {
+                    client_id
+                    access_token
+                    query
+
+                    success: ->
+                        console.log 'success'
+                    failure: ->
+                        console.log 'failure'
+                }
     }
 
 
-e.off = ->
-    return
+e.off = ({path, quiet, couponUse} = {path: false, quiet: false, couponUse: false})->
+    e.on {path,quiet,couponUse}
 
 
 synonyms =
