@@ -2,21 +2,25 @@
 CONF_FILE_NAME = '.node-miopon'
 CONF_PATH = (process.env.HOME || process.env.USERPROFILE) + '/' + CONF_FILE_NAME
 
-# modules requirement
 fs = require 'fs'
 _ = require 'underscore'
 miopon = require 'node-miopon'
 moment = require 'moment'
 
+color =
+    red   : '\u001b[31m'
+    green : '\u001b[32m'
+    cyan  : '\u001b[36m'
+    reset : '\u001b[0m'
+
+# パスを指定してconfigファイルを読みます
 readConfig = ({path, success, failure}) ->
     data = ''
     fs.createReadStream path
         .on 'error', (err) ->
             if err.code is 'ENOENT'
                 if typeof failure is 'function'
-                    red     = '\u001b[31m'
-                    reset   = '\u001b[0m'
-                    console.log "[#{red}WARN#{reset}] no config file specified."
+                    console.log "[#{color.red}WARN#{color.reset}] no config file specified."
                     failure()
         .on 'data', (chunk) ->
             data += chunk
@@ -26,10 +30,24 @@ readConfig = ({path, success, failure}) ->
                 success config
 
 
+calcRemaining = (second) ->
+    second = Math.abs(second + 0)
+    result = 0
+
+    if second > 86400 * 3 # 3 days
+        return Math.floor(second / 86400) + ' days'
+    else if second > 3600 * 2 # 2 hours
+        return Math.floor(second / 3600) + ' hours'
+    else if second > 60 * 5 # 5 min.
+        return Math.floor(second / 60) + ' minutes'
+    else
+        return Math.floor(second) + ' seconds'
+
+
 #exportsするもの
 e = {}
 
-e.init = ({path, mioID, mioPass, client_id, redirect_uri, success}) ->
+e.init = ({path, mioID, mioPass, client_id, redirect_uri, success} = {path: false}) ->
     path = if path then path else CONF_PATH
 
     if mioID && mioPass && client_id && redirect_uri
@@ -58,11 +76,7 @@ e.init = ({path, mioID, mioPass, client_id, redirect_uri, success}) ->
 
 
 # access_tokenの情報を取得する
-e.info = ({path, success, failure}) ->
-    green   = '\u001b[32m'
-    red     = '\u001b[31m'
-    reset   = '\u001b[0m'
-
+e.info = ({path, success, failure} = {path: false}) ->
     path = if path then path else CONF_PATH
     readConfig {
         path
@@ -70,10 +84,11 @@ e.info = ({path, success, failure}) ->
             expired_in = moment config.expires_at
                 .diff moment(), 'second'
             expired = expired_in < 0
+            remaining = calcRemaining expired_in
             if expired
-                message = "[#{red}WARN#{reset}] token has been exipred."
+                message = "[#{color.red}WARN#{color.reset}] token has been exipred #{color.red}#{remaining}#{color.reset} ago."
             else
-                message = "[#{green}OK#{reset}] token is available."
+                message = "[#{color.green}OK#{color.reset}] token is available and expiring in #{color.cyan}#{remaining}#{color.reset}."
             console.log message
             if typeof success is 'function'
                 success expired
@@ -83,7 +98,7 @@ e.info = ({path, success, failure}) ->
 
 
 # oAuthする
-e.update = ({path}) ->
+e.update = ({path} = {path: false}) ->
     path = if path then path else CONF_PATH
     readConfig {
         path
@@ -97,11 +112,22 @@ e.update = ({path}) ->
                 success: ({client_id, access_token, expires_in}) ->
                     config.access_token = access_token
                     config.expires_at = moment().add(expires_in, 'second')
-                    ws = fs.createWriteStream path
-                    ws.write JSON.stringify config
-                    ws.end()
+
+                    # 回線情報を格納しておく
+                    (new miopon.Coupon()).inform {
+                        client_id
+                        access_token
+                        success: (information) ->
+                            config.information = information
+                            ws = fs.createWriteStream path
+                            ws.write JSON.stringify config
+                            ws.end()
+                        failure: (err)->
+                            console.log err
+                    }
             }
     }
+
 
 #認証情報を削除する
 e.delete = ({path}) ->
@@ -112,17 +138,19 @@ e.delete = ({path}) ->
             fs.unlink path
     }
 
+
 e.version = ->
     pkg = require "#{__dirname}/package.json"
-    green   = '\u001b[32m'
-    cyan    = '\u001b[36m'
-    reset   = '\u001b[0m'
-    message = "#{green}#{pkg.name} #{reset}version #{cyan}#{pkg.version}#{reset}"
+    message = "#{color.green}#{pkg.name} #{color.reset}version #{color.cyan}#{pkg.version}#{color.reset}"
     console.log message
     return message
 
-e.on = ->
-    return
+
+e.on = ({path}) ->
+    e.info {
+
+    }
+
 
 e.off = ->
     return
@@ -140,7 +168,6 @@ for method in Object.keys synonyms
             e[synonym] = e[method]
 
 module.exports = e
-
 
 
 return

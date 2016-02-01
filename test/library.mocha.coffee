@@ -36,7 +36,7 @@ describe 'Behaviors: ', ->
     describe '`init` ', ->
 
         it 'generate cofig file', (done) ->
-            path = __dirname + '/.node-miopon'
+            path = __dirname + '/.node-miopon-to-init'
             mioID = 'testID'
             mioPass = 'testPass'
             client_id = 'test dev id'
@@ -53,7 +53,14 @@ describe 'Behaviors: ', ->
                         .on 'data', (chunk) ->
                             data += chunk
                         .on 'end', () ->
-                            result = JSON.parse data
+                            result = ''
+                            try
+                                result = JSON.parse data
+                            catch error
+                                # たまに、おかしくなる。空のJSONが生成されている
+                                console.log 'invalid json spawned..'
+                                expect(false).to.be.true
+                                done()
                             expect(result.mioID).to.eql mioID
                             expect(result.mioPass).to.eql mioPass
                             expect(result.client_id).to.eql client_id
