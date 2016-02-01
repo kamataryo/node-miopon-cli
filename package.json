@@ -1,6 +1,6 @@
 {
   "name": "node-miopon-cli",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "implementation of node-miopon",
   "bin": {
     "mio": "mio.js"
